@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  train-and-evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Train
+        run: |
+          python src/train.py
+
+      - name: Evaluate
+        run: |
+          python src/evaluate.py
+
+      - name: Enforce minimum accuracy
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          metrics = json.loads(Path("artifacts/metrics.json").read_text())
+          acc = float(metrics["accuracy"])
+          min_acc = 0.85  # keep low; it's a sanity gate, not a benchmark
+
+          print(f"Accuracy: {acc:.4f} (min required: {min_acc:.2f})")
+          if acc < min_acc:
+            raise SystemExit(f"Accuracy below threshold: {acc:.4f} < {min_acc:.2f}")
+          PY
