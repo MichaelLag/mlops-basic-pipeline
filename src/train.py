@@ -1,46 +1,57 @@
-from __future__ import annotations
-
+# src/train.py
 import json
+import os
+import sys
+import platform
 from pathlib import Path
 
+import joblib
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-import joblib
+from sklearn.metrics import accuracy_score
 
+ARTIFACTS_DIR = Path("artifacts")
+ARTIFACTS_DIR.mkdir(exist_ok=True)
+
+RANDOM_STATE = 42
+TEST_SIZE = 0.2
 
 def main() -> None:
-    # --- Data (built-in dataset to keep this project self-contained) ---
-    iris = load_iris(as_frame=True)
-    X = iris.data
-    y = iris.target
+    X, y = load_iris(return_X_y=True)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y,
     )
 
-    # --- Model ---
-    model = LogisticRegression(max_iter=200)
+    model = LogisticRegression(
+        max_iter=200,
+        random_state=RANDOM_STATE,
+    )
     model.fit(X_train, y_train)
 
-    # --- Evaluation (quick sanity metric) ---
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
 
-    # --- Save artifacts ---
-    artifacts_dir = Path("artifacts")
-    artifacts_dir.mkdir(exist_ok=True)
+    joblib.dump(model, ARTIFACTS_DIR / "model.joblib")
 
-    joblib.dump(model, artifacts_dir / "model.joblib")
+    metrics = {
+        "accuracy": acc,
+        "random_state": RANDOM_STATE,
+        "test_size": TEST_SIZE,
+        "model_params": model.get_params(),
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "git_sha": os.getenv("GITHUB_SHA", "local"),
+    }
 
-    metrics = {"accuracy": float(acc)}
-    (artifacts_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
+    with open(ARTIFACTS_DIR / "metrics.json", "w") as f:
+        json.dump(metrics, f, indent=2)
 
-    print(f"Train complete. Accuracy={acc:.4f}")
-    print(f"Saved model to {artifacts_dir / 'model.joblib'}")
-    print(f"Saved metrics to {artifacts_dir / 'metrics.json'}")
-
+    print(f"Training accuracy: {acc:.4f}")
 
 if __name__ == "__main__":
     main()
