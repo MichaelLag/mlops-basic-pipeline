@@ -16,6 +16,7 @@ from config import load_config  # note: same folder import
 ARTIFACTS_DIR = Path("artifacts")
 ARTIFACTS_DIR.mkdir(exist_ok=True)
 
+
 def main() -> None:
     cfg = load_config()
 
@@ -56,6 +57,7 @@ def main() -> None:
         json.dump(metrics, f, indent=2)
 
     print(f"Training accuracy: {acc:.4f}")
+
 
 if __name__ == "__main__":
     main()

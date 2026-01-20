@@ -11,6 +11,7 @@ from config import load_config
 
 ARTIFACTS_DIR = Path("artifacts")
 
+
 def main() -> None:
     cfg = load_config()
     test_size = cfg["data"]["test_size"]
@@ -36,6 +37,7 @@ def main() -> None:
         json.dump(eval_metrics, f, indent=2)
 
     print(f"Evaluation accuracy: {acc:.4f}")
+
 
 if __name__ == "__main__":
     main()
