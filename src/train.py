@@ -1,35 +1,41 @@
 # src/train.py
 import json
 import os
-import sys
 import platform
+import sys
 from pathlib import Path
 
 import joblib
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+from config import load_config  # note: same folder import
 
 ARTIFACTS_DIR = Path("artifacts")
 ARTIFACTS_DIR.mkdir(exist_ok=True)
 
-RANDOM_STATE = 42
-TEST_SIZE = 0.2
-
 def main() -> None:
+    cfg = load_config()
+
+    test_size = cfg["data"]["test_size"]
+    random_state = cfg["data"]["random_state"]
+    model_params = cfg["model"]["params"]
+
     X, y = load_iris(return_X_y=True)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
-        test_size=TEST_SIZE,
-        random_state=RANDOM_STATE,
+        X,
+        y,
+        test_size=test_size,
+        random_state=random_state,
         stratify=y,
     )
 
     model = LogisticRegression(
-        max_iter=200,
-        random_state=RANDOM_STATE,
+        random_state=random_state,
+        **model_params,
     )
     model.fit(X_train, y_train)
 
@@ -40,9 +46,7 @@ def main() -> None:
 
     metrics = {
         "accuracy": acc,
-        "random_state": RANDOM_STATE,
-        "test_size": TEST_SIZE,
-        "model_params": model.get_params(),
+        "config": cfg,
         "python_version": sys.version,
         "platform": platform.platform(),
         "git_sha": os.getenv("GITHUB_SHA", "local"),
