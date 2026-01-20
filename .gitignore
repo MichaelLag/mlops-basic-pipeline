@@ -1,2 +1,11 @@
 .venv/
 atifacts/
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+
+# ML artifacts
+artifacts/
