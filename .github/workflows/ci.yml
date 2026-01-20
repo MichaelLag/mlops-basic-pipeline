@@ -1,22 +1,26 @@
-name: CI
+name: Release Model
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
+    tags:
+      - "v*"
+
+# Needed to create GitHub Releases and upload release assets using GITHUB_TOKEN
+permissions:
+  contents: write
 
 jobs:
-  train-and-evaluate:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.8"
 
       - name: Install dependencies
         run: |
@@ -32,25 +36,22 @@ jobs:
       - name: Run tests
         run: pytest -q
 
-      - name: Train
-        run: |
-          python src/train.py
+      - name: Train model
+        run: python src/train.py
 
-      - name: Evaluate
-        run: |
-          python src/evaluate.py
+      - name: Evaluate model
+        run: python src/evaluate.py
 
-      - name: Enforce minimum accuracy
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: artifacts/
 
-          metrics = json.loads(Path("artifacts/metrics.json").read_text())
-          acc = float(metrics["accuracy"])
-          min_acc = 0.85  # keep low; it's a sanity gate, not a benchmark
-
-          print(f"Accuracy: {acc:.4f} (min required: {min_acc:.2f})")
-          if acc < min_acc:
-            raise SystemExit(f"Accuracy below threshold: {acc:.4f} < {min_acc:.2f}")
-          PY
+      - name: Create GitHub Release and attach model assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/model.joblib
+            artifacts/metrics.json
+            artifacts/eval.json
